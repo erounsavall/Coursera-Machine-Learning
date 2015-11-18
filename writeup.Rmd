@@ -1,0 +1,86 @@
+---
+title: "Machine Learning Assignment"
+author: "Elizabeth Rounsavall"
+output: html_document
+---
+## Summary ##
+I used the UCI HAR Weight Lifting Exercise dataset. I split the 'training' dataset into 60%/40%, and trained a random forest model on the 60%, using 5 fold cross-validation. The model predicted a 1.2% out of sample error. I was able to successfully predict `classe` in the remaining 40% of training data with 99.2% accuracy, meaning that the model had an actual 0.8% out of sample error. This model successfully predicted all 20 of the testing problems.
+
+## Data analysis, tidying & feature selection
+```{r, echo=FALSE, message = FALSE, warning = FALSE, tidy = FALSE}
+library(caret)
+library(randomForest)
+source("http://peterhaschke.com/Code/multiplot.R")
+```
+
+```{r}
+setwd("~/Documents/Reference/MOOC/Data Science/code/machlearn")
+data <- read.csv("pml-training.csv",header=TRUE,sep=',',na.strings=c("NA","#DIV/0!",""))
+finaltestdata <- read.csv("pml-testing.csv",header=TRUE,sep=',', na.strings=c("NA","#DIV/0!"))
+
+# make reproducible
+set.seed(345)
+
+# setting up training and testing set locally; will train models on 60% of cases, and test against 40% to estimate out of sample error and see how we're doing.
+inTrain = createDataPartition(data$classe, p = 0.6)[[1]]
+pml.training = data[inTrain,]
+pml.testing = data[-inTrain,]
+```
+The initial dataset had 160 variables, so the first order of business was to reduce the number of columns to only the ones with the best predictive power. From examining the data there were several columns which had a preponderance of 'NA' values (or #DIV/0! errors from Excel). I also eliminated columns which were not sensor-based and therefore unlikely to be predictive (notably the first eight columns, with subject name, time stamp and time window information, etc.). Finally, from the remaining columns I identified and eliminated those which were highly correlated. 
+```{r}
+# eliminate columns with NA
+pml.training <- pml.training[,colSums(is.na(pml.training)) < nrow(pml.training) * 0.5]
+
+# eliminate non-sensor readings 
+pml.training <-pml.training[,8:ncol(pml.training)]
+
+# remove highly correlated variables
+# calculate correlation matrix using every variable except the last one (which is classe, our outcome)
+correlationMatrix <- cor(pml.training[,-ncol(pml.training)])
+
+# eliminate attributes that are highly corrected (ideally >0.75)
+pml.training <- pml.training[,-(findCorrelation(correlationMatrix, cutoff=0.75))]
+
+# zero- or near-zero variance?
+nearZeroVar(pml.training, saveMetrics= TRUE)
+```
+
+The resulting dataset is much smaller.
+```{r}
+dim(pml.training)
+```
+
+## Model construction
+I used a random forest model with 5-fold cross-validation. Cross-fold validation estimates the out of sample error to be 1.2% (that is, the accuracy to be 98.8%). 
+
+```{r, cache=TRUE}
+model <- train(classe ~ ., data=pml.training, method="rf", trControl=trainControl(method="cv",number=5),
+                allowParallel=TRUE, tuneGrid=data.frame(mtry=10))
+print(model)
+```
+
+I also tested this model against the known 40% of the original training set, just to see how well it predicted those variables. 
+```{r}
+predicted <- predict(model,newdata=pml.testing)
+table(pml.testing$classe,predicted)
+prop.table(table(pml.testing$classe,predicted),1)
+prop.table(table(pml.testing$classe,predicted),2)
+```
+Since the accuracy is 99.2% - even better than predicted by the cross-validation - this is a good result. And indeed all 20 answers check out. Success!
+
+## Appendix: Data exploration
+Just a quick multiplot to look at the 35 columns used and to see whether any are obviously ones worth exploring further or disregarding? (Yes, some level of data visualization overload, but I did put it at the end, and you can consider this a lattice / facet grid.)
+```{r}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+```
+```{r fig.height=40, fig.width=10}
+plots=list()
+predictors = colnames(pml.training[-ncol(pml.training)])
+for (pred in predictors) {
+  p <-  ggplot(pml.training, aes_string(x='classe',y=pred)) + geom_boxplot() + geom_jitter(color="#56B4E9", alpha=0.05)
+  plots[[pred]] <- p
+}
+do.call("grid.arrange", c(plots, ncol=3))
+```
