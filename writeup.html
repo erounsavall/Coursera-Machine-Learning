@@ -68,7 +68,8 @@ img {
 
 <div id="summary" class="section level2">
 <h2>Summary</h2>
-<p>I used the UCI HAR Weight Lifting Exercise dataset. I split the ‘training’ dataset into 60%/40%, and trained a random forest model on the 60%, using 5 fold cross-validation. The model predicted a 1.2% out of sample error. I was able to successfully predict <code>classe</code> in the remaining 40% of training data with 99.2% accuracy, meaning that the model had an actual 0.8% out of sample error. This model successfully predicted all 20 of the testing problems.</p>
+<p>Machine learning analysis of the UCI HAR Weight Lifting Exercise dataset to analyze the relationship between the output of sensors and accelerometers attached to human subjects and the types of activities they are performing. Specifically, if the algorithm is ‘trained’ on a set of sensor data for which the type of activity is known, can it then analyze a new set of sensor data for which the type of activity is unknown and predict the correct activity?</p>
+<p>I split the ‘training’ dataset into 60%/40%, and trained a random forest model on the 60%, using 5 fold cross-validation. The model predicted a 1.2% out of sample error. I was able to successfully predict <code>classe</code> in the remaining 40% of training data with 99.2% accuracy, meaning that the model had an actual 0.8% out of sample error. This model successfully predicted all 20 of the testing problems.</p>
 </div>
 <div id="data-analysis-tidying-feature-selection" class="section level2">
 <h2>Data analysis, tidying &amp; feature selection</h2>
@@ -202,7 +203,7 @@ for (pred in predictors) {
   plots[[pred]] &lt;- p
 }
 do.call(&quot;grid.arrange&quot;, c(plots, ncol=3))</code></pre>
-<p><img src="writeup_files/figure-html/unnamed-chunk-8-1.png" title alt width="960" /></p>
+<p><img src="writeup_files/figure-html/unnamed-chunk-8-1.png" width="960" /></p>
 </div>
 
 
